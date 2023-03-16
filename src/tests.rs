@@ -52,6 +52,11 @@ fn test_a_tie_has_multiple_winners() {
     )
 }
 #[test]
+/// Test if the system can determine the winner between two "five of a kind" hands of different ranks.
+fn test_five_alike_tiebreaker() {
+    test(&["4D 4H 4D 4C 4S", "7S 7C 7H 7D 7D"], &["7S 7C 7H 7D 7D"])
+}
+#[test]
 fn test_high_card_can_be_low_card_in_an_otherwise_tie() {
     // multiple hands with the same high cards, tie compares next highest ranked,
     // down to last card

@@ -9,43 +9,55 @@ use regex::Regex;
 
 mod tests;
 
+struct PokerHand<'a> {
+    input: &'a str,
+    cards: Vec<PlayingCard>,
+    category: PokerHandType,
+}
+
 #[derive(PartialEq, PartialOrd)]
-enum PokerHand<'a> {
-    HighCard(&'a str),
-    OnePair(&'a str),
-    TwoPair(&'a str),
-    ThreeOfAKind(&'a str),
-    Straight(&'a str),
-    Flush(&'a str),
-    FullHouse(&'a str),
-    FourOfAKind(&'a str),
-    StraightFlush(&'a str),
-    FiveOfAKind(&'a str),
+enum PokerHandType {
+    HighCard,
+    OnePair,
+    TwoPair,
+    ThreeOfAKind,
+    Straight,
+    Flush,
+    FullHouse,
+    FourOfAKind,
+    StraightFlush,
+    FiveOfAKind,
 }
 
 impl<'a> PokerHand<'a> {
-    fn new(hand: &'a str) -> Self {
-        let cards: Vec<PlayingCard> = hand.split_whitespace().map(|c| PlayingCard::new(c)).collect();
-        if same_rank(cards.iter().collect::<Vec<&PlayingCard>>()) {
-            return PokerHand::FiveOfAKind(hand);
+    fn new(input: &'a str) -> Self {
+        let cards: Vec<PlayingCard> = input.split_whitespace().map(|c| PlayingCard::new(c)).collect();
+        let category: PokerHandType = if same_rank(cards.iter().collect::<Vec<&PlayingCard>>()) {
+            PokerHandType::FiveOfAKind
         } else if is_sequence(cards.iter().map(|c| c.rank).collect()) && same_suit(&cards) {
-            return PokerHand::StraightFlush(hand);
+            PokerHandType::StraightFlush
         } else if cards.iter().combinations(4).any(|combo| same_rank(combo)) {
-            return PokerHand::FourOfAKind(hand);
+            PokerHandType::FourOfAKind
         } else if full_house(&cards) {
-            return PokerHand::FullHouse(hand);
+            PokerHandType::FullHouse
         } else if same_suit(&cards) {
-            return PokerHand::Flush(hand);
+            PokerHandType::Flush
         } else if is_sequence(cards.iter().map(|c| c.rank).collect()) {
-            return PokerHand::Straight(hand);
+            PokerHandType::Straight
         } else if cards.iter().combinations(3).any(|combo| same_rank(combo)) {
-            return PokerHand::ThreeOfAKind(hand);
+            PokerHandType::ThreeOfAKind
         } else if two_pair(&cards) {
-            return PokerHand::TwoPair(hand);
+            PokerHandType::TwoPair
         } else if cards.iter().combinations(2).any(|combo| same_rank(combo)) {
-            return PokerHand::OnePair(hand);
+            PokerHandType::OnePair
+        } else {
+            PokerHandType::HighCard
+        };
+        return PokerHand {
+            input,
+            cards,
+            category
         }
-        return PokerHand::HighCard(hand);
     }
 }
 
@@ -121,7 +133,7 @@ fn is_sequence(mut ranks: Vec<u8>) -> bool {
     return true
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 struct PlayingCard {
     suit: char,
     rank: u8,
@@ -149,21 +161,8 @@ impl PlayingCard {
 }
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     let mut sorted_hands: Vec<PokerHand> = hands.iter().map(|h| PokerHand::new(h)).collect();
-    sorted_hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
-    // TODO need to be able to determine ties & tie-breakers
-    // TODO by checking high cards, high pairs, high triplets, etc - see test cases
-    sorted_hands.iter().filter(|h| std::mem::discriminant(*h) == std::mem::discriminant(&sorted_hands[sorted_hands.len()-1])).map(|h| match h {
-        PokerHand::HighCard(v) => *v,
-        PokerHand::OnePair(v) => *v,
-        PokerHand::TwoPair(v) => *v,
-        PokerHand::ThreeOfAKind(v) => *v,
-        PokerHand::Straight(v) => *v,
-        PokerHand::Flush(v) => *v,
-        PokerHand::FullHouse(v) => *v,
-        PokerHand::FourOfAKind(v) => *v,
-        PokerHand::StraightFlush(v) => *v,
-        PokerHand::FiveOfAKind(v) => *v
-    }).collect()
+    sorted_hands.sort_by(|a, b| a.category.partial_cmp(&b.category).unwrap_or(Ordering::Equal));
+    Vec::new()
 }
 
 
