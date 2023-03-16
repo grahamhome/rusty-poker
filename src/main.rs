@@ -9,6 +9,9 @@ use regex::Regex;
 
 mod tests;
 
+// TODO: Implement equality & inequality operators for PokerHand to make it easy to identify
+// TODO winning hand(s). Base equality/ineqality off of category, then fallback to checking for
+// TODO highest flush, triple, pair, and single card. Full rules on Wikipedia.
 struct PokerHand<'a> {
     input: &'a str,
     cards: Vec<PlayingCard>,
@@ -162,6 +165,8 @@ impl PlayingCard {
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     let mut sorted_hands: Vec<PokerHand> = hands.iter().map(|h| PokerHand::new(h)).collect();
     sorted_hands.sort_by(|a, b| a.category.partial_cmp(&b.category).unwrap_or(Ordering::Equal));
+    let potential_winning_hands: Vec<&PokerHand> = sorted_hands.iter().filter(|h| &h.category == &sorted_hands[sorted_hands.len()-1].category).collect();
+
     Vec::new()
 }
 
