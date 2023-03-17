@@ -38,28 +38,25 @@ impl<'a> PartialEq for PokerHand<'a> {
     }
 }
 
-// TODO: Finish me!
-
-// impl<'a> PartialOrd for PokerHand<'a> {
-//     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-//         match self.category.cmp(&other.category) {
-//             Ordering::Equal => {
-//                 // Break ties between hands of the same type
-//                 match self.category {
-//                     PokerHandType::StraightFlush => self.cards.iter().max().unwrap().partial_cmp(&other.cards.iter().max().unwrap()),
-//                     PokerHandType::FourOfAKind => {
-//                         match &self.category.common_rank.cmp(&other.category.common_rank) {
-//                             Ordering::Equal => &self.category.other_rank.partial_cmp(&other.category.other_rank),
-//                             _ => &self.category.common_rank.cmp(&other.category.common_rank)
-//                         }
-//                     },
-//                     _ => Some(Ordering::Equal)
-//                 }
-//             },
-//             _ => self.category.partial_cmp(&other.category)
-//         }
-//     }
-// }
+impl<'a> PartialOrd for PokerHand<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let cmp = self.category.cmp(&other.category);
+        println!("Comparison says: {:?}", cmp);
+        match cmp {
+            Ordering::Equal => {
+                // Break ties between hands of the same type
+                match (&self.category, &other.category) {
+                    (PokerHandType::StraightFlush{highest_rank: self_highest_rank}, PokerHandType::StraightFlush {highest_rank: other_highest_rank}) => {
+                        println!("Both hands are straight flush");
+                        self_highest_rank.partial_cmp(other_highest_rank)
+                    },
+                    _ => Some(Ordering::Equal)
+                }
+            },
+            _ => Some(cmp)
+        }
+    }
+}
 
 impl<'a> PokerHand<'a> {
     fn new(input: &'a str) -> Self {
@@ -257,11 +254,11 @@ impl PlayingCard {
 /// Note the type signature: this function should return _the same_ reference to
 /// the winning hand(s) as were passed in, not reconstructed strings which happen to be equal.
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
+    println!("checking winning hands");
     let mut sorted_hands: Vec<PokerHand> = hands.iter().map(|h| PokerHand::new(h)).collect();
     sorted_hands.sort_by(|a, b| a.category.partial_cmp(&b.category).unwrap_or(Ordering::Equal));
-    let potential_winning_hands: Vec<&PokerHand> = sorted_hands.iter().filter(|h| &h.category == &sorted_hands[sorted_hands.len()-1].category).collect();
-
-    Vec::new()
+    // TODO filter to get winning hand and all equal hands
+    sorted_hands.iter().map(|h| h.input).collect()
 }
 
 
