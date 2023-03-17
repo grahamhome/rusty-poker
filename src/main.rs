@@ -38,6 +38,8 @@ impl<'a> PartialEq for PokerHand<'a> {
     }
 }
 
+// TODO: Finish me!
+
 // impl<'a> PartialOrd for PokerHand<'a> {
 //     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 //         match self.category.cmp(&other.category) {
@@ -223,7 +225,7 @@ struct PlayingCard {
 
 impl PartialOrd for PlayingCard {
 
-    /// Compare cards by rank, counting aces as high.
+    /// Compare cards by rank.
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.rank.partial_cmp(&other.rank)
     }
