@@ -72,7 +72,7 @@ impl<'a> PokerHand<'a> {
         } else if let Some((pair_rank, triplet_rank)) = full_house(&cards) {
             PokerHandType::FullHouse {pair_rank, triplet_rank}
         } else if same_suit(&cards) {
-            PokerHandType::Flush{ranks: <[u8; 5]>::try_from(ranks.as_slice()).unwrap() }
+            PokerHandType::Flush{ranks: ranks.try_into().unwrap() }
         } else if let Some(highest_rank) = is_sequence(&ranks) {
             PokerHandType::Straight{highest_rank}
         } else if let Some((triplet_rank, other_rank, kicker_rank)) = three_of_a_kind(&cards) {
