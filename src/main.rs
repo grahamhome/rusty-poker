@@ -141,7 +141,7 @@ impl<'a> PokerHand<'a> {
     }
 }
 
-/// Returns true if the hand contains 5 cards in which the ranks form a sequence and the suits match
+/// If the hand contains 5 cards in which the ranks form a sequence and the suits match, returns the cards.
 fn straight_flush(cards: &Vec<PlayingCard>) -> Option<Vec<PlayingCard>> {
     if let Some(cards) = is_sequence(cards) {
         return if same_suit(&cards) {
@@ -190,12 +190,12 @@ fn two_pair(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<PlayingCa
     None
 }
 
-/// Returns true f the given list of cards is all of the same rank.
+/// Returns true if the given list of cards is all of the same rank.
 fn same_rank(cards: &Vec<PlayingCard>) -> bool {
     cards.iter().all(|card| card == cards.iter().next().unwrap())
 }
 
-/// Returns true ff the given list of cards is all of the same suit.
+/// Returns true if the given list of cards is all of the same suit.
 fn same_suit(cards: &Vec<PlayingCard>) -> bool {
     cards.iter().all(|card| card.suit == cards.iter().next().unwrap().suit)
 }
