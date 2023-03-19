@@ -1,13 +1,9 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
-use std::hash::Hash;
 use itertools::Itertools;
 use std::str::FromStr;
 use regex::Regex;
 
 mod tests;
-
-// TODO: Store references to cards, not ranks, in hand type
 
 // TODO: Write additional tests to demonstrate that card, hand, and hand type comparisons & ordering work correctly.
 
@@ -16,15 +12,15 @@ mod tests;
 
 #[derive(Eq, Debug, PartialOrd, Ord)]
 enum PokerHandType {
-    HighCard{ranks: [u8; 5]},
-    OnePair{pair_rank: u8, kicker_ranks: [u8; 3]},
-    TwoPair{pair_ranks: [u8; 2], kicker_rank: u8},
-    ThreeOfAKind{triplet_rank: u8, kicker_ranks: [u8; 2]},
-    Straight{highest_rank: u8},
-    Flush{ranks: [u8; 5]},
-    FullHouse{pair_rank: u8, triplet_rank: u8},
-    FourOfAKind{common_rank: u8, kicker_rank: u8},
-    StraightFlush{highest_rank: u8},
+    HighCard{cards: Vec<PlayingCard>},
+    OnePair{pair: Vec<PlayingCard>, kickers: Vec<PlayingCard>},
+    TwoPair{pair_1: Vec<PlayingCard>, pair_2: Vec<PlayingCard>, kicker: PlayingCard},
+    ThreeOfAKind{triplet: Vec<PlayingCard>, kickers: Vec<PlayingCard>},
+    Straight{cards: Vec<PlayingCard>},
+    Flush{cards: Vec<PlayingCard>},
+    FullHouse{triplet: Vec<PlayingCard>, pair: Vec<PlayingCard>},
+    FourOfAKind{quintuplet: Vec<PlayingCard>, kicker: PlayingCard},
+    StraightFlush{cards: Vec<PlayingCard>},
 }
 
 impl PartialEq for PokerHandType {
@@ -36,13 +32,18 @@ impl PartialEq for PokerHandType {
 #[derive(Eq)]
 struct PokerHand<'a> {
     input: &'a str,
-    cards: HashSet<PlayingCard>,
     category: PokerHandType,
 }
 
 impl<'a> PartialEq for PokerHand<'a> {
     fn eq(&self, other: &Self) -> bool {
-        self.category == other.category && self.cards == other.cards
+        if self.category == other.category {
+            return match self.category.cmp(&other.category) {
+                Ordering::Equal => true,
+                _ => false
+            }
+        }
+        false
     }
 }
 
@@ -56,51 +57,48 @@ impl<'a> Ord for PokerHand<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
         if self.category == other.category {
             return match (&self.category, &other.category) {
-                (PokerHandType::StraightFlush {highest_rank}, PokerHandType::StraightFlush {highest_rank: other_highest_rank}) => {
-                    println!("both straight flushes");
-                    highest_rank.cmp(other_highest_rank)
+                (PokerHandType::StraightFlush {cards: hand_a}, PokerHandType::StraightFlush {cards: hand_b}) => {
+                    hand_a.cmp(hand_b)
                 },
-                (PokerHandType::FourOfAKind {common_rank, kicker_rank}, PokerHandType::FourOfAKind {common_rank: other_common_rank, kicker_rank: other_kicker_rank}) => {
-                    let quintuplet_comparison = common_rank.cmp(other_common_rank);
+                (PokerHandType::FourOfAKind {quintuplet: quint_a, kicker: kicker_a}, PokerHandType::FourOfAKind {quintuplet: quint_b, kicker: kicker_b}) => {
+                    let quintuplet_comparison = quint_a.cmp(quint_b);
                     match quintuplet_comparison {
-                        Ordering::Equal => kicker_rank.cmp(other_kicker_rank),
+                        Ordering::Equal => kicker_a.cmp(kicker_b),
                         _ => quintuplet_comparison
                     }
                 },
-                (PokerHandType::FullHouse {pair_rank, triplet_rank}, PokerHandType::FullHouse {pair_rank: other_pair_rank, triplet_rank: other_triplet_rank}) => {
-                    println!("full house, first pair rank: {}, first triplet rank: {}", pair_rank, triplet_rank);
-                    println!("full house, second pair rank: {}, second triplet rank: {}", other_pair_rank, other_triplet_rank);
-                    let triplet_comparison = triplet_rank.cmp(other_triplet_rank);
+                (PokerHandType::FullHouse {triplet: triplet_a, pair: pair_a}, PokerHandType::FullHouse {triplet: triplet_b, pair: pair_b}) => {
+                    let triplet_comparison = triplet_a.cmp(triplet_b);
                     match triplet_comparison {
-                        Ordering::Equal => pair_rank.cmp(other_pair_rank),
+                        Ordering::Equal => pair_a.cmp(pair_b),
                         _ => triplet_comparison
                     }
                 },
-                (PokerHandType::Flush {ranks}, PokerHandType::Flush {ranks: other_ranks}) => ranks.iter().sorted().cmp(other_ranks.iter().sorted()),
-                (PokerHandType::Straight {highest_rank}, PokerHandType::Straight {highest_rank: other_highest_rank}) => highest_rank.cmp(other_highest_rank),
-                (PokerHandType::ThreeOfAKind {triplet_rank, kicker_ranks}, PokerHandType::ThreeOfAKind {triplet_rank: other_triplet_rank, kicker_ranks: other_kicker_ranks}) => {
-                    let triplet_comparison = triplet_rank.cmp(other_triplet_rank);
+                (PokerHandType::Flush {cards: hand_a}, PokerHandType::Flush {cards: hand_b}) => hand_a.cmp(hand_b),
+                (PokerHandType::Straight {cards: hand_a}, PokerHandType::Straight {cards: hand_b}) => hand_a.cmp(hand_b),
+                (PokerHandType::ThreeOfAKind {triplet: triplet_a, kickers: kickers_a}, PokerHandType::ThreeOfAKind {triplet: triplet_b, kickers: kickers_b}) => {
+                    let triplet_comparison = triplet_a.cmp(triplet_b);
                     match triplet_comparison {
-                        Ordering::Equal => kicker_ranks.iter().sorted().cmp(other_kicker_ranks.iter().sorted()),
+                        Ordering::Equal => kickers_a.cmp(kickers_b),
                         _ => triplet_comparison
                     }
                 },
-                (PokerHandType::TwoPair {pair_ranks, kicker_rank}, PokerHandType::TwoPair {pair_ranks: other_pair_ranks, kicker_rank: other_kicker_rank}) => {
-                    let pairs_comparison = pair_ranks.iter().sum::<u8>().cmp(&other_pair_ranks.iter().sum::<u8>());
+                (PokerHandType::TwoPair {pair_1: pair_1_a, pair_2: pair_2_a, kicker: kicker_a}, PokerHandType::TwoPair {pair_1: pair_1_b, pair_2: pair_2_b, kicker: kicker_b}) => {
+                    let pairs_comparison = (pair_1_a.iter().next().unwrap().rank + pair_1_b.iter().next().unwrap().rank).cmp(&(pair_2_a.iter().next().unwrap().rank + pair_2_b.iter().next().unwrap().rank));
                     match pairs_comparison {
-                        Ordering::Equal => kicker_rank.cmp(other_kicker_rank),
+                        Ordering::Equal => kicker_a.cmp(kicker_b),
                         _ => pairs_comparison
                     }
                 },
-                (PokerHandType::OnePair {pair_rank, kicker_ranks}, PokerHandType::OnePair {pair_rank: other_pair_rank, kicker_ranks:other_kicker_ranks}) => {
-                    let pair_comparison = pair_rank.cmp(other_pair_rank);
+                (PokerHandType::OnePair {pair: pair_a, kickers: kickers_a}, PokerHandType::OnePair {pair: pair_b, kickers: kickers_b}) => {
+                    let pair_comparison = pair_a.iter().next().unwrap().cmp(pair_b.iter().next().unwrap());
                     match pair_comparison {
-                        Ordering::Equal => kicker_ranks.iter().sorted().cmp(other_kicker_ranks.iter().sorted()),
+                        Ordering::Equal => kickers_a.cmp(kickers_b),
                         _ => pair_comparison
                     }
                 },
-                (PokerHandType::HighCard {ranks}, PokerHandType::HighCard {ranks: other_ranks}) => {
-                    ranks.iter().sorted().cmp(other_ranks.iter().sorted())
+                (PokerHandType::HighCard {cards: hand_1}, PokerHandType::HighCard {cards: hand_b}) => {
+                    hand_1.cmp(hand_b)
                 }
                 _ => panic!()
             }
@@ -114,166 +112,113 @@ impl<'a> Ord for PokerHand<'a> {
 
 impl<'a> PokerHand<'a> {
     fn new(input: &'a str) -> Self {
-        let cards: HashSet<PlayingCard> = input.split_whitespace().map(|c| PlayingCard::new(c)).collect();
-        let ranks = ranks(&cards);
-        let category: PokerHandType = if let Some(highest_rank) = straight_flush(&cards) {
-            PokerHandType::StraightFlush {highest_rank}
-        } else if let Some((common_rank, kicker_rank)) = four_of_a_kind(&cards) {
-            PokerHandType::FourOfAKind {common_rank, kicker_rank}
-        } else if let Some((pair_rank, triplet_rank)) = full_house(&cards) {
-            PokerHandType::FullHouse {pair_rank, triplet_rank}
+        let cards: Vec<PlayingCard> = input.split_whitespace().map(|c| PlayingCard::new(c)).sorted().collect();
+        let category: PokerHandType = if straight_flush(&cards) {
+            PokerHandType::StraightFlush {cards}
+        } else if let Some((quintuplet, kickers)) = n_of_a_kind(&cards, 4) {
+            PokerHandType::FourOfAKind {quintuplet, kicker: kickers.into_iter().next().unwrap()}
+        } else if let Some((triplet, pair)) = full_house(&cards) {
+            PokerHandType::FullHouse {triplet, pair}
         } else if same_suit(&cards) {
-            PokerHandType::Flush{ranks: ranks.try_into().unwrap() }
-        } else if let Some(highest_rank) = is_sequence(&ranks) {
-            PokerHandType::Straight{highest_rank}
-        } else if let Some((triplet_rank, other_rank, kicker_rank)) = three_of_a_kind(&cards) {
-            PokerHandType::ThreeOfAKind{triplet_rank, kicker_ranks: [other_rank, kicker_rank]}
-        } else if let Some((pair_ranks, kicker_rank)) = two_pair(&cards) {
-            PokerHandType::TwoPair{pair_ranks, kicker_rank}
-        } else if let Some((pair_rank, kicker_ranks)) = one_pair(&cards) {
-            PokerHandType::OnePair{pair_rank, kicker_ranks}
+            PokerHandType::Flush{cards}
+        } else if is_sequence(&cards) {
+            PokerHandType::Straight{cards}
+        } else if let Some((triplet, kickers)) = n_of_a_kind(&cards, 3) {
+            PokerHandType::ThreeOfAKind{triplet, kickers}
+        } else if let Some((pair_1, pair_2, kicker)) = two_pair(&cards) {
+            PokerHandType::TwoPair{pair_1, pair_2, kicker}
+        } else if let Some((pair, kickers)) = n_of_a_kind(&cards, 2) {
+            PokerHandType::OnePair{pair, kickers}
         } else {
-            PokerHandType::HighCard{ranks: ranks.try_into().unwrap()}
+            PokerHandType::HighCard{cards}
         };
         return PokerHand {
             input,
-            cards,
             category
         }
     }
 }
 
-// TODO: Do comparisons between cards directly, not between ranks
-
-/// Returns the ranks of the given cards
-fn ranks(cards: &HashSet<PlayingCard>) -> Vec<u8> {
-    cards.iter().map(|c| c.rank).collect()
+/// Returns true if the hand contains 5 cards in which the ranks form a sequence and the suits match
+fn straight_flush(cards: &Vec<PlayingCard>) -> bool {
+    if is_sequence(cards) {
+        return same_suit(cards)
+    }
+    false
 }
 
-/// If the hand contains 5 cards in which the ranks form a sequence and the suits match,
-/// returns the highest rank in the hand.
-fn straight_flush(cards: &HashSet<PlayingCard>) -> Option<u8> {
-    if let Some(highest_rank) = is_sequence(&cards.iter().map(|c| c.rank).collect()) {
-        if same_suit(&cards) {
-            return Some(highest_rank)
+/// If the hand contains 5 cards which comprise a full house, returns the triplet and the pair.
+fn full_house(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>)> {
+    if let Some((triplets, other_cards)) = n_of_a_kind(cards, 3) {
+        if same_rank(&other_cards) {
+            return Some((triplets, other_cards))
         }
     }
     None
 }
 
-/// If the hand contains 4 cards of the same rank, returns a tuple
-/// of the shared rank and the individual rank.
-fn four_of_a_kind(cards: &HashSet<PlayingCard>) -> Option<(u8, u8)> {
-    for card in cards.iter() {
-        let mut remaining_cards = cards.clone();
-        remaining_cards.remove(card);
-        if let Some(quintuplet_rank) = same_rank(&Vec::from_iter(remaining_cards.into_iter())) {
-            return Some((quintuplet_rank, card.rank))
+/// If the hand contains an n-sized set of cards of the same type, returns the group and the extra cards.
+fn n_of_a_kind(cards: &Vec<PlayingCard>, n: usize) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>)> {
+    for hand in cards.iter().map(|c| *c).combinations(n) {
+        if same_rank(&hand) {
+            let extra_cards: Vec<PlayingCard> = cards.iter().filter(|c| *c != hand.iter().next().unwrap()).map(|c| *c).collect();
+            return Some((hand, extra_cards))
         }
     }
     None
 }
 
-/// If the hand contains 5 cards which comprise a full house, returns a tuple containing the
-/// rank of the pair and the rank of the triplet.
-/// TODO: have to find triplet first, else triplet members get picked up as pair!
-fn full_house(cards: &HashSet<PlayingCard>) -> Option<(u8, u8)> {
-    if let Some((pair_rank, remaining_hand)) = hand_minus_pair(cards) {
-        if let Some(triplet_rank) = same_rank(&remaining_hand.iter().map(|c| *c).collect::<Vec<PlayingCard>>()) {
-            return Some((pair_rank, triplet_rank))
+/// If the hand contains 2 pairs, returns the two pairs and the remaining cards.
+fn two_pair(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>, PlayingCard)> {
+    if let Some((pair_1, remaining_cards)) = n_of_a_kind(cards, 2) {
+        if let Some((pair_2, remaining_cards)) = n_of_a_kind(&remaining_cards, 2) {
+            return Some((pair_1, pair_2, remaining_cards.into_iter().next().unwrap()))
         }
     }
     None
 }
 
-/// TODO to support both full_house() and three_of_a_kind() use cases, this method should return only playing card instances
-/// TODO All other methods will then have to be updated to do the same.
-/// If the hand contains 3 cards of the same type, returns a tuple of the shared rank and the individual ranks.
-fn three_of_a_kind(cards: &HashSet<PlayingCard>) -> Option<(u8, u8, u8)> {
-    for combo in cards.iter().map(|c| *c).combinations(3) {
-        if let Some(triplet_rank) = same_rank(&combo) {
-            let extra_cards: Vec<PlayingCard> = cards.iter().filter(|c| c.rank != triplet_rank).map(|c| *c).collect();
-            return Some((triplet_rank, extra_cards.get(0).unwrap().rank, extra_cards.get(1).unwrap().rank))
-        }
-    }
-    None
+/// Returns true f the given list of cards is all of the same rank.
+fn same_rank(cards: &Vec<PlayingCard>) -> bool {
+    cards.iter().all(|card| card == cards.iter().next().unwrap())
 }
 
-/// If the hand contains 2 pairs, returns the rank of each pair and the kicker rank.
-fn two_pair(cards: &HashSet<PlayingCard>) -> Option<([u8; 2], u8)> {
-    if let Some((pair_1_rank, remaining_cards)) = hand_minus_pair(cards) {
-        for combo in remaining_cards.iter().map(|c| *c).combinations(2) {
-            if let Some(pair_2_rank) = same_rank(&combo) {
-                return Some(([pair_1_rank, pair_2_rank], cards.iter().filter(|c| ! vec![pair_1_rank, pair_2_rank].contains(&c.rank)).map(|c| *c).collect::<Vec<PlayingCard>>().get(0).unwrap().rank))
-            }
-        }
-    }
-    None
-}
-
-/// If the hand contains a pair, returns the pair rank and the other cards' ranks.
-fn one_pair(cards: &HashSet<PlayingCard>) -> Option<(u8, [u8; 3])> {
-    for combo in cards.iter().map(|c| *c).combinations(2) {
-        if let Some(pair_rank) = same_rank(&combo) {
-            return Some((pair_rank, cards.iter().filter(|c| c.rank != pair_rank).map(|c| c.rank).collect::<Vec<u8>>().try_into().unwrap()))
-        }
-    }
-    None
-}
-
-/// If the hand contains a pair, returns the pair's rank and the remaining cards.
-fn hand_minus_pair(cards: &HashSet<PlayingCard>) -> Option<(u8, HashSet<PlayingCard>)> {
-    for combo in cards.iter().map(|c| *c).combinations(2) {
-        if let Some(pair_rank) = same_rank(&combo) {
-            return Some((pair_rank, cards.iter().filter(|c| c.rank != pair_rank).map(|c| *c).collect()))
-        }
-    }
-    None
-}
-
-
-/// If the given list of cards is all of the same rank, returns the rank.
-fn same_rank(cards: &Vec<PlayingCard>) -> Option<u8> {
-    let rank = cards.iter().next().unwrap().rank;
-    if cards.iter().all(|card| card.rank == rank) {
-        return Some(rank)
-    }
-    None
-}
-
-/// Returns true if the given list of cards is all of the same suit, false otherwise.
-fn same_suit(cards: &HashSet<PlayingCard>) -> bool {
+/// Returns true ff the given list of cards is all of the same suit.
+fn same_suit(cards: &Vec<PlayingCard>) -> bool {
     cards.iter().all(|card| card.suit == cards.iter().next().unwrap().suit)
 }
 
-/// Returns the highest rank in the hand if the given list of cards represents a sequence (shuffled or not)
-fn is_sequence(ranks: &Vec<u8>) -> Option<u8> {
-    let mut ranks = ranks.clone();
-    match ranks.len() {
-        0 => None,
-        1 => Some(*ranks.get(0).unwrap()),
+/// Returns true if the given list of cards represents a sequence.
+fn is_sequence(cards: &Vec<PlayingCard>) -> bool {
+    match cards.len() {
+        0 => false,
+        1 => true,
         _ => {
-            ranks.sort();
-            for i in 1..ranks.len() {
-                if ranks[i] - ranks[i-1] != 1 {
-                    if ranks.contains(&14) {
-                        // This hand is not a sequence, but we can set aces low and check again
-                        return is_sequence(&ranks.into_iter().map(|r| match r {
-                            2..=13 => r,
-                            14 => 1,
-                            _ => panic!("This should never happen")
-                        }).collect())
-                    } else {
-                        return None
+            let mut cards = cards.clone();
+            cards.sort();
+            for i in 1..cards.len() {
+                if cards[i].rank - cards[i-1].rank != 1 {
+                    // This hand is not a sequence: check for aces
+                    for card in cards.iter() {
+                        return if card.rank == 14 {
+                            // Set all aces low and check again (no sequence will contain both a high and a low ace)
+                            is_sequence(&cards.into_iter().map(|card| match card.rank {
+                                2..=13 => card,
+                                14 => PlayingCard { rank: 1, suit: card.suit },
+                                _ => panic!()
+                            }).collect())
+                        } else {
+                            false
+                        }
                     }
                 }
             }
-            Some(ranks[ranks.len()-1])
+            true
         }
     }
 }
 
-#[derive(Clone, Copy, Eq, Hash, Debug)]
+#[derive(Clone, Copy, Eq, Debug)]
 struct PlayingCard {
     suit: char,
     rank: u8,
@@ -298,7 +243,10 @@ impl Ord for PlayingCard {
 impl PartialEq for PlayingCard {
     /// Equal cards have equal ranks
     fn eq(&self, other: &Self) -> bool {
-        self.rank == other.rank
+        match self.cmp(other) {
+            Ordering::Equal => true,
+            _ => false
+        }
     }
 }
 
