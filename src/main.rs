@@ -57,9 +57,7 @@ impl<'a> Ord for PokerHand<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
         if self.category == other.category {
             return match (&self.category, &other.category) {
-                (PokerHandType::StraightFlush {cards: hand_a}, PokerHandType::StraightFlush {cards: hand_b}) => {
-                    hand_a.cmp(hand_b)
-                },
+                (PokerHandType::StraightFlush {cards: hand_a}, PokerHandType::StraightFlush {cards: hand_b}) => hand_a.cmp(hand_b),
                 (PokerHandType::FourOfAKind {quintuplet: quint_a, kicker: kicker_a}, PokerHandType::FourOfAKind {quintuplet: quint_b, kicker: kicker_b}) => {
                     let quintuplet_comparison = quint_a.cmp(quint_b);
                     match quintuplet_comparison {
@@ -103,9 +101,7 @@ impl<'a> Ord for PokerHand<'a> {
                         _ => pair_comparison
                     }
                 },
-                (PokerHandType::HighCard {cards: hand_1}, PokerHandType::HighCard {cards: hand_b}) => {
-                    hand_1.cmp(hand_b)
-                }
+                (PokerHandType::HighCard {cards: hand_1}, PokerHandType::HighCard {cards: hand_b}) => hand_1.cmp(hand_b),
                 _ => panic!()
             }
         } else if self.category > other.category {
@@ -119,7 +115,7 @@ impl<'a> Ord for PokerHand<'a> {
 impl<'a> PokerHand<'a> {
     fn new(input: &'a str) -> Self {
         let cards: Vec<PlayingCard> = input.split_whitespace().map(|c| PlayingCard::new(c)).sorted().collect();
-        let category: PokerHandType = if straight_flush(&cards) {
+        let category: PokerHandType = if let Some(cards) = straight_flush(&cards) {
             PokerHandType::StraightFlush {cards}
         } else if let Some((quintuplet, kickers)) = n_of_a_kind(&cards, 4) {
             PokerHandType::FourOfAKind {quintuplet, kicker: kickers.into_iter().next().unwrap()}
@@ -127,7 +123,7 @@ impl<'a> PokerHand<'a> {
             PokerHandType::FullHouse {triplet, pair}
         } else if same_suit(&cards) {
             PokerHandType::Flush{cards}
-        } else if is_sequence(&cards) {
+        } else if let Some(cards) = is_sequence(&cards) {
             PokerHandType::Straight{cards}
         } else if let Some((triplet, kickers)) = n_of_a_kind(&cards, 3) {
             PokerHandType::ThreeOfAKind{triplet, kickers}
@@ -146,11 +142,16 @@ impl<'a> PokerHand<'a> {
 }
 
 /// Returns true if the hand contains 5 cards in which the ranks form a sequence and the suits match
-fn straight_flush(cards: &Vec<PlayingCard>) -> bool {
-    if is_sequence(cards) {
-        return same_suit(cards)
+fn straight_flush(cards: &Vec<PlayingCard>) -> Option<Vec<PlayingCard>> {
+    if let Some(cards) = is_sequence(cards) {
+        return if same_suit(&cards) {
+            Some(cards)
+        } else {
+            None
+        }
+
     }
-    false
+    None
 }
 
 /// If the hand contains 5 cards which comprise a full house, returns the triplet and the pair.
@@ -199,32 +200,30 @@ fn same_suit(cards: &Vec<PlayingCard>) -> bool {
     cards.iter().all(|card| card.suit == cards.iter().next().unwrap().suit)
 }
 
-/// Returns true if the given list of cards represents a sequence.
-fn is_sequence(cards: &Vec<PlayingCard>) -> bool {
+/// If the given list of cards represents a sequence, returns the cards.
+fn is_sequence(cards: &Vec<PlayingCard>) -> Option<Vec<PlayingCard>> {
+    let mut cards = cards.clone();
     match cards.len() {
-        0 => false,
-        1 => true,
+        0 => None,
+        1 => Some(cards),
         _ => {
-            let mut cards = cards.clone();
             cards.sort();
             for i in 1..cards.len() {
                 if cards[i].rank - cards[i-1].rank != 1 {
                     // This hand is not a sequence: check for aces
-                    for card in cards.iter() {
-                        return if card.rank == 14 {
-                            // Set all aces low and check again (no sequence will contain both a high and a low ace)
-                            is_sequence(&cards.into_iter().map(|card| match card.rank {
-                                2..=13 => card,
-                                14 => PlayingCard { rank: 1, suit: card.suit },
-                                _ => panic!()
-                            }).sorted().collect())
-                        } else {
-                            false
-                        }
+                    return if cards.iter().any(|card| card.rank == 14) {
+                        // Set all aces low and check again (no sequence will contain both a high and a low ace)
+                        is_sequence(&cards.into_iter().map(|card| match card.rank {
+                            2..=13 => card,
+                            14 => PlayingCard { rank: 1, suit: card.suit },
+                            _ => panic!()
+                        }).sorted().collect())
+                    } else {
+                        None
                     }
                 }
             }
-            true
+            Some(cards)
         }
     }
 }
