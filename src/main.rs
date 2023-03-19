@@ -11,6 +11,8 @@ mod tests;
 
 // TODO: Write additional tests to demonstrate that card, hand, and hand type comparisons & ordering work correctly.
 
+// TODO (after submission): Organize into 3 modules: PlayingCard, PokerHand, PokerHandType
+
 
 #[derive(Eq, Debug, PartialOrd, Ord)]
 enum PokerHandType {
@@ -184,6 +186,8 @@ fn full_house(cards: &HashSet<PlayingCard>) -> Option<(u8, u8)> {
     None
 }
 
+/// TODO to support both full_house() and three_of_a_kind() use cases, this method should return only playing card instances
+/// TODO All other methods will then have to be updated to do the same.
 /// If the hand contains 3 cards of the same type, returns a tuple of the shared rank and the individual ranks.
 fn three_of_a_kind(cards: &HashSet<PlayingCard>) -> Option<(u8, u8, u8)> {
     for combo in cards.iter().map(|c| *c).combinations(3) {
@@ -279,7 +283,7 @@ impl PartialOrd for PlayingCard {
 
     /// Compare cards by rank.
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.rank.partial_cmp(&other.rank)
+        Some(self.cmp(other))
     }
 }
 
