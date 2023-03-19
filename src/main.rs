@@ -14,7 +14,7 @@ mod tests;
 enum PokerHandType {
     HighCard{cards: Vec<PlayingCard>},
     OnePair{pair: Vec<PlayingCard>, kickers: Vec<PlayingCard>},
-    TwoPair{pair_1: Vec<PlayingCard>, pair_2: Vec<PlayingCard>, kicker: PlayingCard},
+    TwoPair{high_pair: Vec<PlayingCard>, low_pair: Vec<PlayingCard>, kicker: PlayingCard},
     ThreeOfAKind{triplet: Vec<PlayingCard>, kickers: Vec<PlayingCard>},
     Straight{cards: Vec<PlayingCard>},
     Flush{cards: Vec<PlayingCard>},
@@ -83,11 +83,17 @@ impl<'a> Ord for PokerHand<'a> {
                         _ => triplet_comparison
                     }
                 },
-                (PokerHandType::TwoPair {pair_1: pair_1_a, pair_2: pair_2_a, kicker: kicker_a}, PokerHandType::TwoPair {pair_1: pair_1_b, pair_2: pair_2_b, kicker: kicker_b}) => {
-                    let pairs_comparison = (pair_1_a.iter().next().unwrap().rank + pair_1_b.iter().next().unwrap().rank).cmp(&(pair_2_a.iter().next().unwrap().rank + pair_2_b.iter().next().unwrap().rank));
-                    match pairs_comparison {
-                        Ordering::Equal => kicker_a.cmp(kicker_b),
-                        _ => pairs_comparison
+                (PokerHandType::TwoPair {high_pair: high_pair_a, low_pair: low_pair_a, kicker: kicker_a}, PokerHandType::TwoPair {high_pair: high_pair_b, low_pair: low_pair_b, kicker: kicker_b}) => {
+                    let high_pair_comparison = high_pair_a.cmp(high_pair_b);
+                    return match high_pair_comparison {
+                        Ordering::Equal => {
+                            let low_pair_comparison = low_pair_a.cmp(low_pair_b);
+                            match low_pair_comparison {
+                                Ordering::Equal => kicker_a.cmp(kicker_b),
+                                _ => low_pair_comparison
+                            }
+                        },
+                        _ => high_pair_comparison
                     }
                 },
                 (PokerHandType::OnePair {pair: pair_a, kickers: kickers_a}, PokerHandType::OnePair {pair: pair_b, kickers: kickers_b}) => {
@@ -125,8 +131,8 @@ impl<'a> PokerHand<'a> {
             PokerHandType::Straight{cards}
         } else if let Some((triplet, kickers)) = n_of_a_kind(&cards, 3) {
             PokerHandType::ThreeOfAKind{triplet, kickers}
-        } else if let Some((pair_1, pair_2, kicker)) = two_pair(&cards) {
-            PokerHandType::TwoPair{pair_1, pair_2, kicker}
+        } else if let Some((high_pair, low_pair, kicker)) = two_pair(&cards) {
+            PokerHandType::TwoPair{high_pair, low_pair, kicker}
         } else if let Some((pair, kickers)) = n_of_a_kind(&cards, 2) {
             PokerHandType::OnePair{pair, kickers}
         } else {
@@ -172,7 +178,12 @@ fn n_of_a_kind(cards: &Vec<PlayingCard>, n: usize) -> Option<(Vec<PlayingCard>, 
 fn two_pair(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>, PlayingCard)> {
     if let Some((pair_1, remaining_cards)) = n_of_a_kind(cards, 2) {
         if let Some((pair_2, remaining_cards)) = n_of_a_kind(&remaining_cards, 2) {
-            return Some((pair_1, pair_2, remaining_cards.into_iter().next().unwrap()))
+            let pair_1_highest = pair_1.iter().next().unwrap() >= pair_2.iter().next().unwrap();
+            return if pair_1_highest {
+                Some((pair_1, pair_2, remaining_cards.into_iter().next().unwrap()))
+            } else {
+                Some((pair_2, pair_1, remaining_cards.into_iter().next().unwrap()))
+            }
         }
     }
     None
@@ -206,7 +217,7 @@ fn is_sequence(cards: &Vec<PlayingCard>) -> bool {
                                 2..=13 => card,
                                 14 => PlayingCard { rank: 1, suit: card.suit },
                                 _ => panic!()
-                            }).collect())
+                            }).sorted().collect())
                         } else {
                             false
                         }
