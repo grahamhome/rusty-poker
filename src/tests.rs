@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::winning_hands;
+    use crate::winning_hands::winning_hands;
     use std::collections::HashSet;
 
     fn hs_from<'a>(input: &[&'a str]) -> HashSet<&'a str> {
