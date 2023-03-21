@@ -1,3 +1,4 @@
+/// Tests provided by exercism.org
 #[cfg(test)]
 mod tests {
     use crate::winning_hands::winning_hands;
