@@ -25,10 +25,7 @@ impl Ord for PlayingCard {
 impl PartialEq for PlayingCard {
     /// Equal cards have equal ranks
     fn eq(&self, other: &Self) -> bool {
-        match self.cmp(other) {
-            Ordering::Equal => true,
-            _ => false,
-        }
+        matches!(self.cmp(other), Ordering::Equal)
     }
 }
 

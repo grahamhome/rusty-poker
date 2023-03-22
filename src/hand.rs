@@ -12,13 +12,7 @@ pub struct PokerHand<'a> {
 
 impl<'a> PartialEq for PokerHand<'a> {
     fn eq(&self, other: &Self) -> bool {
-        if self.category == other.category {
-            return match self.category.cmp(&other.category) {
-                Ordering::Equal => true,
-                _ => false,
-            };
-        }
-        false
+        matches!(self.category.cmp(&other.category), Ordering::Equal)
     }
 }
 
@@ -30,122 +24,121 @@ impl<'a> PartialOrd for PokerHand<'a> {
 
 impl<'a> Ord for PokerHand<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
-        if self.category == other.category {
-            match (&self.category, &other.category) {
-                (
-                    PokerHandType::StraightFlush { cards: hand_a },
-                    PokerHandType::StraightFlush { cards: hand_b },
-                ) => hand_a.cmp(hand_b),
-                (
-                    PokerHandType::FourOfAKind {
-                        quintuplet: quint_a,
-                        kicker: kicker_a,
-                    },
-                    PokerHandType::FourOfAKind {
-                        quintuplet: quint_b,
-                        kicker: kicker_b,
-                    },
-                ) => {
-                    let quintuplet_comparison = quint_a.cmp(quint_b);
-                    match quintuplet_comparison {
-                        Ordering::Equal => kicker_a.cmp(kicker_b),
-                        _ => quintuplet_comparison,
-                    }
-                }
-                (
-                    PokerHandType::FullHouse {
-                        triplet: triplet_a,
-                        pair: pair_a,
-                    },
-                    PokerHandType::FullHouse {
-                        triplet: triplet_b,
-                        pair: pair_b,
-                    },
-                ) => {
-                    let triplet_comparison = triplet_a.cmp(triplet_b);
-                    match triplet_comparison {
-                        Ordering::Equal => pair_a.cmp(pair_b),
-                        _ => triplet_comparison,
-                    }
-                }
-                (
-                    PokerHandType::Flush { cards: hand_a },
-                    PokerHandType::Flush { cards: hand_b },
-                ) => hand_a.cmp(hand_b),
-                (
-                    PokerHandType::Straight { cards: hand_a },
-                    PokerHandType::Straight { cards: hand_b },
-                ) => hand_a.cmp(hand_b),
-                (
-                    PokerHandType::ThreeOfAKind {
-                        triplet: triplet_a,
-                        kickers: kickers_a,
-                    },
-                    PokerHandType::ThreeOfAKind {
-                        triplet: triplet_b,
-                        kickers: kickers_b,
-                    },
-                ) => {
-                    let triplet_comparison = triplet_a.cmp(triplet_b);
-                    match triplet_comparison {
-                        Ordering::Equal => kickers_a.cmp(kickers_b),
-                        _ => triplet_comparison,
-                    }
-                }
-                (
-                    PokerHandType::TwoPair {
-                        high_pair: high_pair_a,
-                        low_pair: low_pair_a,
-                        kicker: kicker_a,
-                    },
-                    PokerHandType::TwoPair {
-                        high_pair: high_pair_b,
-                        low_pair: low_pair_b,
-                        kicker: kicker_b,
-                    },
-                ) => {
-                    let high_pair_comparison = high_pair_a.cmp(high_pair_b);
-                    return match high_pair_comparison {
-                        Ordering::Equal => {
-                            let low_pair_comparison = low_pair_a.cmp(low_pair_b);
-                            match low_pair_comparison {
-                                Ordering::Equal => kicker_a.cmp(kicker_b),
-                                _ => low_pair_comparison,
-                            }
+        let category_comparison = self.category.cmp(&other.category);
+        match category_comparison {
+            Ordering::Equal => {
+                match (&self.category, &other.category) {
+                    (
+                        PokerHandType::StraightFlush { cards: hand_a },
+                        PokerHandType::StraightFlush { cards: hand_b },
+                    ) => hand_a.cmp(hand_b),
+                    (
+                        PokerHandType::FourOfAKind {
+                            quintuplet: quint_a,
+                            kicker: kicker_a,
+                        },
+                        PokerHandType::FourOfAKind {
+                            quintuplet: quint_b,
+                            kicker: kicker_b,
+                        },
+                    ) => {
+                        let quintuplet_comparison = quint_a.cmp(quint_b);
+                        match quintuplet_comparison {
+                            Ordering::Equal => kicker_a.cmp(kicker_b),
+                            _ => quintuplet_comparison,
                         }
-                        _ => high_pair_comparison,
-                    };
-                }
-                (
-                    PokerHandType::OnePair {
-                        pair: pair_a,
-                        kickers: kickers_a,
-                    },
-                    PokerHandType::OnePair {
-                        pair: pair_b,
-                        kickers: kickers_b,
-                    },
-                ) => {
-                    let pair_comparison = pair_a
-                        .iter()
-                        .next()
-                        .unwrap()
-                        .cmp(pair_b.iter().next().unwrap());
-                    match pair_comparison {
-                        Ordering::Equal => kickers_a.cmp(kickers_b),
-                        _ => pair_comparison,
                     }
+                    (
+                        PokerHandType::FullHouse {
+                            triplet: triplet_a,
+                            pair: pair_a,
+                        },
+                        PokerHandType::FullHouse {
+                            triplet: triplet_b,
+                            pair: pair_b,
+                        },
+                    ) => {
+                        let triplet_comparison = triplet_a.cmp(triplet_b);
+                        match triplet_comparison {
+                            Ordering::Equal => pair_a.cmp(pair_b),
+                            _ => triplet_comparison,
+                        }
+                    }
+                    (
+                        PokerHandType::Flush { cards: hand_a },
+                        PokerHandType::Flush { cards: hand_b },
+                    ) => hand_a.cmp(hand_b),
+                    (
+                        PokerHandType::Straight { cards: hand_a },
+                        PokerHandType::Straight { cards: hand_b },
+                    ) => hand_a.cmp(hand_b),
+                    (
+                        PokerHandType::ThreeOfAKind {
+                            triplet: triplet_a,
+                            kickers: kickers_a,
+                        },
+                        PokerHandType::ThreeOfAKind {
+                            triplet: triplet_b,
+                            kickers: kickers_b,
+                        },
+                    ) => {
+                        let triplet_comparison = triplet_a.cmp(triplet_b);
+                        match triplet_comparison {
+                            Ordering::Equal => kickers_a.cmp(kickers_b),
+                            _ => triplet_comparison,
+                        }
+                    }
+                    (
+                        PokerHandType::TwoPair {
+                            high_pair: high_pair_a,
+                            low_pair: low_pair_a,
+                            kicker: kicker_a,
+                        },
+                        PokerHandType::TwoPair {
+                            high_pair: high_pair_b,
+                            low_pair: low_pair_b,
+                            kicker: kicker_b,
+                        },
+                    ) => {
+                        let high_pair_comparison = high_pair_a.cmp(high_pair_b);
+                        match high_pair_comparison {
+                            Ordering::Equal => {
+                                let low_pair_comparison = low_pair_a.cmp(low_pair_b);
+                                match low_pair_comparison {
+                                    Ordering::Equal => kicker_a.cmp(kicker_b),
+                                    _ => low_pair_comparison,
+                                }
+                            }
+                            _ => high_pair_comparison,
+                        }
+                    }
+                    (
+                        PokerHandType::OnePair {
+                            pair: pair_a,
+                            kickers: kickers_a,
+                        },
+                        PokerHandType::OnePair {
+                            pair: pair_b,
+                            kickers: kickers_b,
+                        },
+                    ) => {
+                        let pair_comparison = pair_a
+                            .first()
+                            .unwrap()
+                            .cmp(pair_b.first().unwrap());
+                        match pair_comparison {
+                            Ordering::Equal => kickers_a.cmp(kickers_b),
+                            _ => pair_comparison,
+                        }
+                    }
+                    (
+                        PokerHandType::HighCard { cards: hand_1 },
+                        PokerHandType::HighCard { cards: hand_b },
+                    ) => hand_1.cmp(hand_b),
+                    _ => panic!(),
                 }
-                (
-                    PokerHandType::HighCard { cards: hand_1 },
-                    PokerHandType::HighCard { cards: hand_b },
-                ) => hand_1.cmp(hand_b),
-                _ => panic!(),
-            }
-        } else if self.category > other.category {
-            Ordering::Greater
-        } else {
-            Ordering::Less
+            },
+            _ => category_comparison
         }
     }
 }
@@ -154,7 +147,7 @@ impl<'a> PokerHand<'a> {
     pub fn new(input: &'a str) -> Self {
         let cards: Vec<PlayingCard> = input
             .split_whitespace()
-            .map(|c| PlayingCard::new(c))
+            .map(PlayingCard::new)
             .sorted()
             .collect();
         let category: PokerHandType = if let Some(cards) = straight_flush(&cards) {
@@ -162,7 +155,7 @@ impl<'a> PokerHand<'a> {
         } else if let Some((quintuplet, kickers)) = n_of_a_kind(&cards, 4) {
             PokerHandType::FourOfAKind {
                 quintuplet,
-                kicker: kickers.into_iter().next().unwrap(),
+                kicker: kickers.first().unwrap().to_owned(),
             }
         } else if let Some((triplet, pair)) = full_house(&cards) {
             PokerHandType::FullHouse { triplet, pair }
@@ -183,12 +176,12 @@ impl<'a> PokerHand<'a> {
         } else {
             PokerHandType::HighCard { cards }
         };
-        return PokerHand { input, category };
+        PokerHand { input, category }
     }
 }
 
 /// If the hand contains 5 cards in which the ranks form a sequence and the suits match, returns the cards.
-fn straight_flush(cards: &Vec<PlayingCard>) -> Option<Vec<PlayingCard>> {
+fn straight_flush(cards: &[PlayingCard]) -> Option<Vec<PlayingCard>> {
     if let Some(cards) = is_sequence(cards) {
         return if same_suit(&cards) { Some(cards) } else { None };
     }
@@ -196,7 +189,7 @@ fn straight_flush(cards: &Vec<PlayingCard>) -> Option<Vec<PlayingCard>> {
 }
 
 /// If the hand contains 5 cards which comprise a full house, returns the triplet and the pair.
-fn full_house(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>)> {
+fn full_house(cards: &[PlayingCard]) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>)> {
     if let Some((triplets, other_cards)) = n_of_a_kind(cards, 3) {
         if same_rank(&other_cards) {
             return Some((triplets, other_cards));
@@ -206,13 +199,13 @@ fn full_house(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<Playing
 }
 
 /// If the hand contains an n-sized set of cards of the same type, returns the group and the extra cards.
-fn n_of_a_kind(cards: &Vec<PlayingCard>, n: usize) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>)> {
-    for hand in cards.iter().map(|c| *c).combinations(n) {
+fn n_of_a_kind(cards: &[PlayingCard], n: usize) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>)> {
+    for hand in cards.iter().copied().combinations(n) {
         if same_rank(&hand) {
             let extra_cards: Vec<PlayingCard> = cards
                 .iter()
-                .filter(|c| *c != hand.iter().next().unwrap())
-                .map(|c| *c)
+                .filter(|c| *c != hand.first().unwrap())
+                .copied()
                 .collect();
             return Some((hand, extra_cards));
         }
@@ -221,14 +214,14 @@ fn n_of_a_kind(cards: &Vec<PlayingCard>, n: usize) -> Option<(Vec<PlayingCard>, 
 }
 
 /// If the hand contains 2 pairs, returns the two pairs and the remaining cards.
-fn two_pair(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>, PlayingCard)> {
+fn two_pair(cards: &[PlayingCard]) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>, PlayingCard)> {
     if let Some((pair_1, remaining_cards)) = n_of_a_kind(cards, 2) {
         if let Some((pair_2, remaining_cards)) = n_of_a_kind(&remaining_cards, 2) {
             let pair_1_highest = pair_1 >= pair_2;
             return if pair_1_highest {
-                Some((pair_1, pair_2, remaining_cards.into_iter().next().unwrap()))
+                Some((pair_1, pair_2, remaining_cards.first().unwrap().to_owned()))
             } else {
-                Some((pair_2, pair_1, remaining_cards.into_iter().next().unwrap()))
+                Some((pair_2, pair_1, remaining_cards.first().unwrap().to_owned()))
             };
         }
     }
@@ -236,22 +229,22 @@ fn two_pair(cards: &Vec<PlayingCard>) -> Option<(Vec<PlayingCard>, Vec<PlayingCa
 }
 
 /// Returns true if the given list of cards is all of the same rank.
-fn same_rank(cards: &Vec<PlayingCard>) -> bool {
+fn same_rank(cards: &[PlayingCard]) -> bool {
     cards
         .iter()
-        .all(|card| card == cards.iter().next().unwrap())
+        .all(|card| card == cards.first().unwrap())
 }
 
 /// Returns true if the given list of cards is all of the same suit.
-fn same_suit(cards: &Vec<PlayingCard>) -> bool {
+fn same_suit(cards: &[PlayingCard]) -> bool {
     cards
         .iter()
-        .all(|card| card.suit == cards.iter().next().unwrap().suit)
+        .all(|card| card.suit == cards.first().unwrap().suit)
 }
 
 /// If the given list of cards represents a sequence, returns the cards.
-fn is_sequence(cards: &Vec<PlayingCard>) -> Option<Vec<PlayingCard>> {
-    let mut cards = cards.clone();
+fn is_sequence(cards: &[PlayingCard]) -> Option<Vec<PlayingCard>> {
+    let mut cards = cards.to_owned();
     match cards.len() {
         0 => None,
         1 => Some(cards),
@@ -274,7 +267,7 @@ fn is_sequence(cards: &Vec<PlayingCard>) -> Option<Vec<PlayingCard>> {
                                     _ => panic!(),
                                 })
                                 .sorted()
-                                .collect(),
+                                .collect::<Vec<PlayingCard>>(),
                         )
                     } else {
                         None
