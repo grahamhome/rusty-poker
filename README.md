@@ -15,3 +15,4 @@ Call `winning_hands()` on an input list of poker hands to get winning hands. Run
 - String parsing
 - Struct sorting
 - Borrowing rules
+- Vector comparisons
