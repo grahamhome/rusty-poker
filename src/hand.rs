@@ -217,17 +217,14 @@ fn n_of_a_kind(cards: &[PlayingCard], n: usize) -> Option<(Vec<PlayingCard>, Vec
 
 /// If the hand contains 2 pairs, returns the two pairs and the remaining cards.
 fn two_pair(cards: &[PlayingCard]) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>, PlayingCard)> {
-    if let Some((pair_1, remaining_cards)) = n_of_a_kind(cards, 2) {
-        if let Some((pair_2, remaining_cards)) = n_of_a_kind(&remaining_cards, 2) {
-            let pair_1_highest = pair_1 >= pair_2;
-            return if pair_1_highest {
-                Some((pair_1, pair_2, remaining_cards.first().unwrap().to_owned()))
-            } else {
-                Some((pair_2, pair_1, remaining_cards.first().unwrap().to_owned()))
-            };
-        }
-    }
-    None
+    let (pair_1, remaining_cards) = n_of_a_kind(cards, 2)?;
+    let (pair_2, remaining_cards) = n_of_a_kind(&remaining_cards, 2)?;
+    let pair_1_highest = pair_1 >= pair_2;
+    return if pair_1_highest {
+        Some((pair_1, pair_2, remaining_cards.first().unwrap().to_owned()))
+    } else {
+        Some((pair_2, pair_1, remaining_cards.first().unwrap().to_owned()))
+    };
 }
 
 /// Returns true if the given list of cards is all of the same rank.
