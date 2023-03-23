@@ -182,20 +182,22 @@ impl<'a> PokerHand<'a> {
 
 /// If the hand contains 5 cards in which the ranks form a sequence and the suits match, returns the cards.
 fn straight_flush(cards: &[PlayingCard]) -> Option<Vec<PlayingCard>> {
-    if let Some(cards) = is_sequence(cards) {
-        return if same_suit(&cards) { Some(cards) } else { None };
-    }
-    None
+    is_sequence(cards).and_then(|cards| {
+        if same_suit(&cards) {
+            return Some(cards);
+        }
+        None
+    })
 }
 
 /// If the hand contains 5 cards which comprise a full house, returns the triplet and the pair.
 fn full_house(cards: &[PlayingCard]) -> Option<(Vec<PlayingCard>, Vec<PlayingCard>)> {
-    if let Some((triplets, other_cards)) = n_of_a_kind(cards, 3) {
+    n_of_a_kind(cards, 3).and_then(|(triplets, other_cards)| {
         if same_rank(&other_cards) {
             return Some((triplets, other_cards));
         }
-    }
-    None
+        None
+    })
 }
 
 /// If the hand contains an n-sized set of cards of the same type, returns the group and the extra cards.
