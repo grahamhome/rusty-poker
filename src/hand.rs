@@ -32,7 +32,6 @@ impl<'a> Ord for PokerHand<'a> {
         let category_comparison = self.category.cmp(&other.category);
         match category_comparison {
             Ordering::Equal => {
-                println!("{:?} vs {:?}", self.sorted_ranks(), other.sorted_ranks());
                 self.sorted_ranks().cmp(&other.sorted_ranks())
             }
             _ => category_comparison,
