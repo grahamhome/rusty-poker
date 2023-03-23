@@ -67,6 +67,7 @@ impl<'a> PokerHand<'a> {
         hand
     }
 
+    /// Assigns the correct category to the hand.
     fn categorize(&mut self) {
         self.category = if self.same_suit() && self.sequence() {
             PokerHandType::StraightFlush
@@ -121,6 +122,7 @@ impl<'a> PokerHand<'a> {
         true
     }
 
+    /// Sets the value of all aces in the hand to 1.
     fn aces_low(&mut self) {
         let ace_count = *self.ranks.get(&14_u8).unwrap();
         self.ranks
