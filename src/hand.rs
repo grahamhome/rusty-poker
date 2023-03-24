@@ -29,12 +29,11 @@ impl<'a> PartialOrd for PokerHand<'a> {
 
 impl<'a> Ord for PokerHand<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let category_comparison = self.category.cmp(&other.category);
-        match category_comparison {
+        match self.category.cmp(&other.category) {
             Ordering::Equal => {
                 self.sorted_ranks().cmp(&other.sorted_ranks())
             }
-            _ => category_comparison,
+            ordering => ordering,
         }
     }
 }
